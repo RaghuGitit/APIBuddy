@@ -1,0 +1,8 @@
+langgraph
+langchain
+langsmith
+dotenv
+langchain_core
+langchain-openai
+typing
+streamlit
