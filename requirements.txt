@@ -4,5 +4,11 @@ langsmith
 dotenv
 langchain_core
 langchain-openai
+langgraph-checkpoint
+langgraph-checkpoint-sqlite
+langchain-community
 typing
 streamlit
+ddgs
+pydantic
+grandalf
