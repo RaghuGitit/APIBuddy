@@ -1,3 +1,10 @@
-# Environments
 .env
+.env.local
 buddyenv/
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+*.egg-info/
+dist/
+build/
