@@ -12,3 +12,8 @@ streamlit
 ddgs
 pydantic
 grandalf
+pyyaml
+jsonschema
+openapi-spec-validator
+PyGithub==2.3.0
+

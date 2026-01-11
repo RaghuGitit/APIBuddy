@@ -16,7 +16,8 @@ def json_schema_agent(state: APIBuddyState) -> APIBuddyState:
     response = llm.invoke(
         PROMPT.format_messages(goal=state["user_goal"])
     )
-
+    print("Generated JSON Schema:")
+    print(response.content)
     state["json_schema"] = json.loads(response.content)
     state["schema_name"] = "User"
     state["schema_explanation"] = "Generated JSON schema from user goal"

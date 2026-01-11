@@ -3,6 +3,11 @@
 buddyenv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*$py.class
+*.so
+.cpython-*.so
 .DS_Store
 .idea/
 *.egg-info/

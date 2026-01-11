@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "example": "task_123"
+    },
+    "title": {
+      "type": "string",
+      "example": "Complete project documentation"
+    },
+    "description": {
+      "type": "string",
+      "example": "Write comprehensive API documentation"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed"
+      ],
+      "example": "in_progress"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "example": "high"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "example": "2024-01-15T10:30:00Z"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "example": "2024-01-16T14:20:00Z"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "status"
+  ]
+}

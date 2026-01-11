@@ -44,7 +44,7 @@ if "chat_threads" not in st.session_state:
 # add_thread(st.session_state["thread_id"])
 
 # ============================ Sidebar ============================
-st.sidebar.title("LangGraph Chatbot")
+st.sidebar.title("APIBuddy Chatbot")
 
 if st.sidebar.button("New Chat"):
     reset_chat()

@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "properties": {
+    "error": {
+      "type": "string",
+      "example": "Invalid request"
+    },
+    "message": {
+      "type": "string",
+      "example": "The title field is required"
+    },
+    "code": {
+      "type": "integer",
+      "example": 400
+    }
+  }
+}

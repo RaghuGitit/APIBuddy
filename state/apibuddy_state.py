@@ -9,11 +9,40 @@ class APIBuddyState(TypedDict):
     #     "SCHEMA_THEN_API",
     #     "API_ONLY"
     # ]
-
     # Keeping intent as str instead of literal since intent_determination_agent output 
     # is a structured output
     intent: str
     intent_confidence: float
+
+    # File paths
+    old_api_spec_path: str
+    new_api_spec_path: str
+
+    # Loaded specs
+    old_api_spec: Optional[Dict[str, Any]]
+    new_api_spec: Optional[Dict[str, Any]]
+
+    # Compatibility result
+    compatibility_status: Optional[Literal[
+        "BACKWARD_COMPATIBLE",
+        "BREAKING"
+    ]]
+    compatibility_issues: Optional[List[str]]
+    compatibility_report: Optional[str]
+
+     # HITL
+    pending_approval: Optional[Dict[str, Any]]
+    approval_decision: Optional[Literal["APPROVED", "REJECTED"]]
+
+    # File input
+    api_spec_dir: Optional[str]      # directory path
+    api_spec_file: Optional[str]     # filename
+    uploaded_api_spec: Optional[Dict[str, Any]]
+
+    # Extracted schemas
+    extracted_schema_files: Optional[List[str]]
+    number_of_extracted_schema_files: Optional[int]
+    temp_schema_dir: Optional[str]
 
     # JSON schema
     json_schema: Optional[Dict[str, Any]]

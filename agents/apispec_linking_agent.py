@@ -1,6 +1,6 @@
 from state.apibuddy_state import APIBuddyState
 
-def api_spec_linking_agent(state: APIBuddyState) -> APIBuddyState:
+def apispec_linking_agent(state: APIBuddyState) -> APIBuddyState:
     """
     Links generated JSON schema into OpenAPI specification
     using components/schemas references.
