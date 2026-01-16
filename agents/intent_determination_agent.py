@@ -4,86 +4,139 @@ from state.apibuddy_state import APIBuddyState
 from pydantic import BaseModel, Field
 from typing import Literal
 from langgraph.types import interrupt
+from config.intent_models import IntentDetectionResult
+from config.intents import ALL_INTENTS
 
-model = get_llm()
+# model = get_llm()
+
+# PROMPT = ChatPromptTemplate.from_messages([
+#     ("system",
+#      "You are an intent classification agent for an API platform.\n"
+#      "Classify the user request into exactly one of the following intents:\n"
+#      "- SCHEMA_THEN_API: User wants to define a data schema then generate API\n"
+#      "- API_ONLY: User wants to generate API without explicit schema\n"
+#      "- EXTRACT_SCHEMAS_ONLY: User wants to extract schemas from an API spec\n"
+#      "- COMPARE_API_SPECS: User wants to compare old and new API specifications for compatibility\n"
+#      "- INVALID: User request is unclear, unrelated, or cannot be classified\n"
+#      "Respond with ONLY the intent and confidence score."),
+#     ("human", "{goal}")
+# ])
 
 PROMPT = ChatPromptTemplate.from_messages([
-    ("system",
-     "You are an intent classification agent for an API platform.\n"
-     "Classify the user request into exactly one of the following intents:\n"
-     "- SCHEMA_THEN_API: User wants to define a data schema then generate API\n"
-     "- API_ONLY: User wants to generate API without explicit schema\n"
-     "- EXTRACT_SCHEMAS_ONLY: User wants to extract schemas from an API spec\n"
-     "- COMPARE_API_SPECS: User wants to compare old and new API specifications for compatibility\n"
-     "- INVALID: User request is unclear, unrelated, or cannot be classified\n"
-     "Respond with ONLY the intent and confidence score."),
+    (
+        "system",
+        """
+            You are an intent classification system for an API lifecycle platform.
+
+            Your job:
+            - Identify ALL applicable intents from the user request
+            - Return them sorted by confidence DESC
+            - Do NOT hallucinate unsupported intents
+
+            Allowed intents:
+            - SCHEMA_THEN_API
+            - API_ONLY
+            - EXTRACT_SCHEMAS_ONLY
+            - COMPARE_API_SPECS
+
+            Explanation of intents:
+            "- SCHEMA_THEN_API: User wants to define a data schema then generate API\n"
+            "- API_ONLY: User wants to generate API Specification file\n"
+            "- EXTRACT_SCHEMAS_ONLY: User wants to extract schemas from an API specification\n"
+            "- COMPARE_API_SPECS: User wants to compare old and new API specifications for compatibility\n"
+            "- INVALID: User request is unclear, unrelated, or cannot be classified\n"
+        """
+    ),
     ("human", "{goal}")
 ])
 
 # Create a Pydantic model for structured output from the model
-class IntentSchema(BaseModel):
-    intent: Literal["SCHEMA_THEN_API", "API_ONLY", "EXTRACT_SCHEMAS_ONLY", "COMPARE_API_SPECS", "INVALID"] = Field(description='Intent of the user')
-    intent_confidence: float = Field(description='Confidence score of the intent classification between 0 and 1')
+# class IntentSchema(BaseModel):
+#     intent: Literal["SCHEMA_THEN_API", "API_ONLY", "EXTRACT_SCHEMAS_ONLY", "COMPARE_API_SPECS", "INVALID"] = Field(description='Intent of the user')
+#     intent_confidence: float = Field(description='Confidence score of the intent classification between 0 and 1')
 
-structured_model = model.with_structured_output(IntentSchema)
+# LLM with structured output
+structured_model = get_llm().with_structured_output(IntentDetectionResult)
 
 def intent_determination_agent(state: APIBuddyState) -> APIBuddyState:
-    response = structured_model.invoke(
+    # response = structured_model.invoke(
+    #     PROMPT.format_messages(goal=state["user_goal"])
+    # )
+    # Invoke LLM with structured output
+    result: IntentDetectionResult = structured_model.invoke(
         PROMPT.format_messages(goal=state["user_goal"])
     )
 
-    intent = response.intent
-    intent_confidence = response.intent_confidence
-    
-    # Clamp confidence for safety
-    intent_confidence = max(0.0, min(intent_confidence, 1.0))
+    # Validate & normalize
+    intent_candidates = []
 
-    print(f"Determined intent: {intent}")
-    print(f"Intent Confidence: {intent_confidence:.2f}")
+    for item in result.intents:
+        if item.intent not in ALL_INTENTS:
+            continue
 
-    if intent not in ("SCHEMA_THEN_API", "API_ONLY", "EXTRACT_SCHEMAS_ONLY","COMPARE_API_SPECS","INVALID"):
-        raise ValueError("Invalid intent classification")
+        intent_candidates.append({
+            "intent": item.intent,
+            "confidence": round(item.confidence, 2)
+        })
 
-    if intent == "INVALID":
-        print("Warning: User Request is classified as INVALID")
-        state["task_log"].append("Intent classification: INVALID - request unclear or unrelated")
-    else:
-        state["intent"] = intent
-        state["intent_confidence"] = intent_confidence
-        state["task_log"].append(f"Intent determined: {intent}")
-        state["task_log"].append(f"Intent confidence: {intent_confidence:.2f}")
+    if not intent_candidates:
+        raise RuntimeError("No valid intents detected")
 
-    # Interrupt for user confirmation on intent
-    if intent != "INVALID":
-        approval_payload = {
-            "action": "CONFIRM_INTENT",
-            "intent": intent,
-            "confidence": intent_confidence,
-            "description": "Please confirm the detected intent before execution proceeds",
-            "options": ["APPROVED", "REJECTED"]
-        }
+    # Ensure sorted by confidence desc
+    intent_candidates.sort(
+        key=lambda x: x["confidence"],
+        reverse=True
+    )
 
-        state["pending_approval"] = approval_payload
-        state["approval_decision"] = None
+    state["intent_candidates"] = intent_candidates
+    state["current_intent_index"] = 0
 
-        # PAUSE WORKFLOW HERE
-        # interrupt(approval_payload)
-        # Interrupt workflow for user approval
-        decision = interrupt(approval_payload)
+    state["task_log"].append(
+        f"Detected intent candidates: {intent_candidates}"
+    )
 
-        # ---- Resume after user decision ----
-        # decision = state.get("approval_decision")
+    # INTERRUPT: User confirms the intents
+    approval_payload = {
+        "action": "CONFIRM_INTENTS",
+        "intent_candidates": intent_candidates,
+        "instruction": "Select one or more intents to execute in order"
+    }
 
-        if decision["approved"] == "APPROVED":
-            state["task_log"].append("Intent approved by user")
-            print("In resume - Intent approved by user")
-            return state
+    state["pending_approval"] = approval_payload
+    state["approval_decision"] = None
 
-        if decision["approved"] == "REJECTED":
-            state["task_log"].append("Intent rejected by user")
-            print("In resume - Intent rejected by user")
-            raise RuntimeError("User rejected detected intent")
+    # Interrupt workflow for user approval
+    decision = interrupt(approval_payload)
 
-        raise RuntimeError("Invalid approval decision for intent confirmation")
+    # ---- Resume After User Decision ----
+    print(f"User decision on Intents list: {decision}")
+
+    if decision["approved"] == "APPROVED":
+        state["task_log"].append(
+        f"User selected intents: {intent_candidates}")
+        # state["selected_intents"] = intent_candidates
+        state["selected_intents"] = [
+            item["intent"] for item in intent_candidates
+        ]
+        print("In resume - User approved the intents list")
+        return state
+
+    if decision["approved"] == "REJECTED":
+        print("In resume - User rejected the intents list")
+        state["task_log"].append("User rejected the intents list")
+        # raise RuntimeError("JSON Schema rejected by user")
+        return state
+
+    # Resume after user decision    
+    # selected_intents = state.get("approval_decision")
+
+    # if not isinstance(selected_intents, list) or not selected_intents:
+    #     raise RuntimeError("No intents selected by user")
+
+    # state["selected_intents"] = selected_intents
+
+    # state["task_log"].append(
+    #     f"User selected intents: {selected_intents}"
+    # )
 
     return state

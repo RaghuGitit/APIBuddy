@@ -16,6 +16,7 @@ from governance.governance_gate_agent import governance_gate_agent
 from agents.apispec_file_reader_agent import apispec_file_reader_agent
 from agents.backward_compatibility_agent import backward_compatibility_agent
 from agents.git_persistence_node import git_persistence_node
+from agents.intent_dispatcher_agent import intent_dispatcher_agent
 
 def route_after_intent(state: APIBuddyState) -> str:
     if state["intent"] == "SCHEMA_THEN_API":
@@ -30,6 +31,7 @@ def build_workflow():
     graph = StateGraph(APIBuddyState)
 
     graph.add_node("intent_determination_agent", intent_determination_agent)
+    graph.add_node("intent_dispatcher_agent", intent_dispatcher_agent)
     graph.add_node("json_schema_agent", json_schema_agent)
     graph.add_node("json_schema_validator_agent", json_schema_validator_agent)
     graph.add_node("apispec_linking_agent", apispec_linking_agent)
@@ -44,18 +46,31 @@ def build_workflow():
 
     # Entry
     graph.set_entry_point("intent_determination_agent")
+    graph.add_edge("intent_determination_agent", "intent_dispatcher_agent")
 
-    # Intent-based routing
+    # --- Conditional routing based on dispatcher return ---
     graph.add_conditional_edges(
-        "intent_determination_agent",
-        route_after_intent,
+        "intent_dispatcher_agent",
+        lambda state: state["next_intent"],
         {
-            "json_schema_agent": "json_schema_agent",
-            "apispec_authoring_agent": "apispec_authoring_agent",
-            "apispec_loader_agent": "apispec_loader_agent",
-            "apispec_file_reader_agent": "apispec_file_reader_agent"
+            "EXTRACT_SCHEMAS_ONLY": "apispec_loader_agent",
+            "COMPARE_API_SPECS": "apispec_file_reader_agent",
+            "SCHEMA_THEN_API": "json_schema_agent",
+            None: END
         }
     )
+
+    # Intent-based routing
+    # graph.add_conditional_edges(
+    #     "intent_determination_agent",
+    #     route_after_intent,
+    #     {
+    #         "json_schema_agent": "json_schema_agent",
+    #         "apispec_authoring_agent": "apispec_authoring_agent",
+    #         "apispec_loader_agent": "apispec_loader_agent",
+    #         "apispec_file_reader_agent": "apispec_file_reader_agent"
+    #     }
+    # )
     # Schema-first path
     # graph.add_edge("json_schema_agent", "json_schema_validator_agent")
     # graph.add_edge("json_schema_validator_agent", "apispec_linking_agent")
@@ -80,8 +95,11 @@ def build_workflow():
     graph.add_edge("apispec_authoring_agent", "apispec_validator_agent")
     graph.add_edge("apispec_validator_agent", "governance_gate_agent")
 
+    # Loop back to dispatcher for next intent
+    graph.add_edge("governance_gate_agent", "intent_dispatcher_agent")
+
     # End
-    graph.add_edge("governance_gate_agent", END)
+    graph.add_edge("intent_dispatcher_agent", END)
 
     # -------------------
     # 5. Checkpointer

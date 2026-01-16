@@ -225,6 +225,11 @@ if st.button("▶ Run APIBuddy"):
         "intent": None,
         "intent_confidence": None,
 
+        "intent_candidates": [],     
+        "selected_intents": None,
+
+        "current_intent_index": 0,
+
         # File-based inputs
         "old_api_spec_path": old_api_path,
         "new_api_spec_path": new_api_path,
@@ -259,11 +264,13 @@ if st.button("▶ Run APIBuddy"):
             interrupt_value = result['__interrupt__'][0].value
             st.session_state.workflow_state = result
             st.info("interrupt result:" + str(interrupt_value))
+            print("interrupt result:" + str(interrupt_value))
             st.session_state.pending_interrupt = None
         
         # Check if interrupt is present in result
         if interrupt_value is not None:            
             st.info("Interrupt received - awaiting user approval")
+            print("Interrupt received - awaiting user approval")
             st.session_state.pending_interrupt = interrupt_value
             st.rerun()
         

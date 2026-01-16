@@ -4,6 +4,15 @@ class APIBuddyState(TypedDict):
     # User intent
     user_goal: str
 
+    # ---- Multi-candidate intent detection ----
+    intent_candidates: List[Dict[str, Any]]  # [{intent, confidence}]
+    selected_intents: Optional[List[str]]    # user-approved intents
+
+    # ---- Execution pointer ----
+    current_intent_index: int
+    
+    next_intent: Optional[str]
+
     # Intent classification
     # intent: Literal[
     #     "SCHEMA_THEN_API",

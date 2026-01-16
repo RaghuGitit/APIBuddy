@@ -6,31 +6,31 @@ CONFIDENCE_THRESHOLD = 0.75
 def governance_gate_agent(state: APIBuddyState) -> APIBuddyState:
     state["task_log"].append("Governance Gate Agent invoked")
 
-    if state["intent_confidence"] < CONFIDENCE_THRESHOLD:
-        print("\nLOW INTENT CONFIDENCE")
-        print(f"Intent: {state['intent']}")
-        print(f"Confidence: {state['intent_confidence']:.2f}")
+    # if state["intent_confidence"] < CONFIDENCE_THRESHOLD:
+    #     print("\nLOW INTENT CONFIDENCE")
+    #     print(f"Intent: {state['intent']}")
+    #     print(f"Confidence: {state['intent_confidence']:.2f}")
 
-        decision = input("Proceed with this intent? (yes/no): ").strip().lower()
-        if decision != "yes":
-            raise RuntimeError("Execution stopped due to low confidence")
+    #     decision = input("Proceed with this intent? (yes/no): ").strip().lower()
+    #     if decision != "yes":
+    #         raise RuntimeError("Execution stopped due to low confidence")
 
-        state["task_log"].append("User confirmed low-confidence intent")
+    #     state["task_log"].append("User confirmed low-confidence intent")
 
     if state["requires_approval"]:
-        if (state["intent"] == "SCHEMA_THEN_API"):           
-            print("\n--- HUMAN APPROVAL REQUIRED ---")
-            print("Generated JSON Schema:\n")            
-            print(state["json_schema"])
-            print("Generated API Spec:\n")
-            print(state["api_spec"])
-        if (state["intent"] == "EXTRACT_SCHEMAS_ONLY"):
-            print("\n--- HUMAN APPROVAL REQUIRED ---")
-            print(f"Number of extracted schemas: {state.get('number_of_extracted_schema_files', 'N/A')}")
-            print(f"Extracted schema files located at: {state.get('temp_schema_dir', 'N/A')}")
-        if (state["intent"] == "COMPARE_API_SPECS"):
-            print(f"Compatibility Status of the new API: {state.get('compatibility_status', 'N/A')}")
-            print("\n--- HUMAN APPROVAL REQUIRED ---")
+        # if (state["intent"] == "SCHEMA_THEN_API"):           
+        #     print("\n--- HUMAN APPROVAL REQUIRED ---")
+        #     print("Generated JSON Schema:\n")            
+        #     print(state["json_schema"])
+        #     print("Generated API Spec:\n")
+        #     print(state["api_spec"])
+        # if (state["intent"] == "EXTRACT_SCHEMAS_ONLY"):
+        #     print("\n--- HUMAN APPROVAL REQUIRED ---")
+        #     print(f"Number of extracted schemas: {state.get('number_of_extracted_schema_files', 'N/A')}")
+        #     print(f"Extracted schema files located at: {state.get('temp_schema_dir', 'N/A')}")
+        # if (state["intent"] == "COMPARE_API_SPECS"):
+        #     print(f"Compatibility Status of the new API: {state.get('compatibility_status', 'N/A')}")
+        #     print("\n--- HUMAN APPROVAL REQUIRED ---")
 
         # ---- Prepare Approval Payload ----
         approval_payload = {
