@@ -59,3 +59,6 @@ class APIBuddyState(TypedDict):
 
     # Audit
     task_log: List[str]
+    
+    # Interrupts
+    # interrupt: Optional[List[Any]]

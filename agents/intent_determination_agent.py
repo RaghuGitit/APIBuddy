@@ -3,6 +3,7 @@ from config.llm import get_llm
 from state.apibuddy_state import APIBuddyState
 from pydantic import BaseModel, Field
 from typing import Literal
+from langgraph.types import interrupt
 
 model = get_llm()
 
@@ -51,5 +52,38 @@ def intent_determination_agent(state: APIBuddyState) -> APIBuddyState:
         state["intent_confidence"] = intent_confidence
         state["task_log"].append(f"Intent determined: {intent}")
         state["task_log"].append(f"Intent confidence: {intent_confidence:.2f}")
+
+    # Interrupt for user confirmation on intent
+    if intent != "INVALID":
+        approval_payload = {
+            "action": "CONFIRM_INTENT",
+            "intent": intent,
+            "confidence": intent_confidence,
+            "description": "Please confirm the detected intent before execution proceeds",
+            "options": ["APPROVED", "REJECTED"]
+        }
+
+        state["pending_approval"] = approval_payload
+        state["approval_decision"] = None
+
+        # PAUSE WORKFLOW HERE
+        # interrupt(approval_payload)
+        # Interrupt workflow for user approval
+        decision = interrupt(approval_payload)
+
+        # ---- Resume after user decision ----
+        # decision = state.get("approval_decision")
+
+        if decision["approved"] == "APPROVED":
+            state["task_log"].append("Intent approved by user")
+            print("In resume - Intent approved by user")
+            return state
+
+        if decision["approved"] == "REJECTED":
+            state["task_log"].append("Intent rejected by user")
+            print("In resume - Intent rejected by user")
+            raise RuntimeError("User rejected detected intent")
+
+        raise RuntimeError("Invalid approval decision for intent confirmation")
 
     return state

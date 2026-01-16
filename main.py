@@ -5,6 +5,7 @@ load_dotenv()
 
 from orchestrator.workflow import build_workflow
 from state.apibuddy_state import APIBuddyState
+from langgraph.types import Interrupt
 
 # ---- LangSmith (optional but recommended) ----
 # os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -29,7 +30,7 @@ def main():
     new_api_spec_dir = os.path.join(project_root, "filesrepo", "apispecs/new/new_api_spec.json")
 
     initial_state: APIBuddyState = {
-        "user_goal": "Do a backward compatibility check between two API specs",
+        "user_goal": "Create a json schema with name and address as fields",
         # for comparing API specs
         "old_api_spec_path": old_api_spec_dir,
         "new_api_spec_path": new_api_spec_dir,
@@ -51,8 +52,14 @@ def main():
         "approval_status": None,
         "task_log": []
     }
+    try:
+        final_state = app.invoke(initial_state)
+    except Interrupt as interrupt:
+        # Workflow paused
+        print("Workflow paused for approval")
+        print("Interrupt payload:", interrupt.value)
+        print("Interrupt payload:", interrupt.state)
 
-    final_state = app.invoke(initial_state)
 
     print("\n--- FINAL STATE (JSON) ---")
     print(final_state)

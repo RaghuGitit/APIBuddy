@@ -1,3 +1,6 @@
+from langgraph.checkpoint.sqlite import SqliteSaver
+import sqlite3
+
 from langgraph.graph import StateGraph, END
 # from asyncio import graph
 from state.apibuddy_state import APIBuddyState
@@ -80,4 +83,20 @@ def build_workflow():
     # End
     graph.add_edge("governance_gate_agent", END)
 
-    return graph.compile()
+    # -------------------
+    # 5. Checkpointer
+    # -------------------
+    conn = sqlite3.connect(database="chatbot1.db", check_same_thread=False)
+    checkpointer = SqliteSaver(conn=conn)
+
+    return graph.compile(checkpointer=checkpointer)
+
+
+# -------------------
+# 7. Helper
+# -------------------
+# def retrieve_allthreads():
+#     all_threads = set()
+#     for checkpoint in checkpointer.list(None):
+#         all_threads.add(checkpoint.config["configurable"]["thread_id"])
+#     return list(all_threads)
